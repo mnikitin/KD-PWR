@@ -1,0 +1,133 @@
+data_source = {
+    'MS1M': {
+        'params': {
+            'train_db': 'data/faces_emore/train_clean_reshuffled',
+        },
+        'num_classes': 85742,
+        'train_samples_num': 5822653
+    }
+}
+
+data_params = {
+    'mean': 0.0,
+    'std': 1.0,
+    'shuffle': True,
+    'rand_crop': True,
+    'rand_mirror': True,
+    'max_rotate_angle': 5,
+    'contrast': 0.1,
+    'brightness': 0.1,
+    'saturation': 0.1,
+    'hue': 0.1
+}
+
+test_params = {
+    'dbs_root': 'data/faces_emore',
+    'dbs': ['lfw', 'cfp_fp', 'agedb_30'],
+}
+
+teacher_params = {
+    'insightface-resnet': {
+        'type': 'insightface-resnet',
+        'depth': 50,
+        'input_type': 1,
+        'output_type': 'G',
+        'activation': 'prelu',
+        'embedding_dim': 512,
+        'init': ('experiments/MS1M__r50G/CosFace-1.0/2020-03-03--11-19-56/student-converted', 18)
+    }
+}
+
+student_params = {
+    'insightface-resnet': {
+        'type': 'insightface-resnet',
+        'depth': 18,
+        'input_type': 1,
+        'output_type': 'G',
+        'activation': 'prelu',
+        'embedding_dim': 512,
+        'init': ()
+    }
+}
+
+loss_params = {
+    'classification': {
+        'weight': 0.7,
+        # combined-margin params (also used for knowledge distillation)
+        'type': 'combined-margin',
+        'margin_1': 1.0,
+        'margin_2': 0.0,
+        'margin_3': 0.35,
+        'scale': 64.0,
+        'student_init': (),
+    },
+    'HKD': {
+        'weight': 0.3,
+        'temperature': 4.0,
+        'teacher_init': ('experiments/MS1M__r50G/CosFace-1.0/2020-03-03--11-19-56/student-clf-converted', 18)
+    },
+    'DarkRank': {
+        'weight': 0.0,
+        'metric_func': 'l2',
+        'type': 'hard',     # 'hard' | 'soft'
+        'alpha': 3.0,
+        'beta': 3.0,
+        'list_length': 4,
+    },
+    'RKD-D': {
+        'weight': 0.0,
+        'metric_func': 'l2',    # 'cs' | 'l2'
+        'huber_delta': 1.0,
+        'batch_normalize': False,
+    },
+    'RKD-A': {
+        'weight': 0.0,
+        'huber_delta': 1.0,
+    },
+    'PWR': {
+        'weight': 100.0,
+        'metric_func': 'l2',    # 'cs' | 'l2'
+        'loss_type': 'diff_exp',    # 'diff_power' | 'diff_exp' | 'ranknet'
+        # loss params
+        'diff_margin_type': 'teacher_diff',    # 'const' | 'teacher_diff' | 'teacher_std'
+        'diff_margin': 0.0,
+        'diff_power': 1.0,
+        'diff_exp_beta': 1.0,
+        'ranknet_beta': 1.0
+    }
+}
+
+db_name = 'MS1M'
+teacher_type = 'insightface-resnet'
+student_type = 'insightface-resnet'
+config = {
+    'data_source': data_source[db_name],
+    'data_params': data_params,
+    'test_params': test_params,
+
+    'teacher_params': teacher_params[teacher_type],
+    'student_params': student_params[student_type],
+    'loss_params': loss_params,
+
+    'experiment_dir': "experiments/MS1M__r50_to_t18G",
+
+    'input_shape': (3, 112, 112),
+    'batch_size': 92,       # batch size per gpu
+
+    # Optimizer params
+    'opt_params': {
+        'lr_base': 0.1,
+        'lr_factor': 0.1,
+        'lr_epoch_step': 2,
+        'num_epoch': 13,
+        'momentum': 0.9,
+        'wd': 0.0005
+    },
+
+    # Display and testing frequency params
+    'display_period': 50,
+    'test_period': 5000,
+
+    # GPU devices
+    'devices_id': [0, 1, 2, 3, 4, 5],
+}
